@@ -1,0 +1,73 @@
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
+import { buildWhatsAppLink, DEFAULT_WHATSAPP_NUMBER } from '../lib/whatsapp'
+
+function CheckIcon() {
+  return <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="m8.5 12 2.3 2.3 4.8-5" /></svg>
+}
+
+export default function OrderConfirmation() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const orderRef = location.state?.orderRef
+  const [waNumber, setWaNumber] = useState(DEFAULT_WHATSAPP_NUMBER)
+
+  useEffect(() => {
+    if (!orderRef) {
+      navigate('/', { replace: true })
+      return
+    }
+    supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'whatsapp_number')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setWaNumber(data.value)
+      })
+  }, [orderRef])
+
+  if (!orderRef) return null
+
+  return (
+    <div className="mx-auto max-w-lg px-4 py-16 text-center">
+      <div className="card">
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-oasis-green-light text-oasis-green-dark"><CheckIcon /></div>
+        <h1 className="text-xl font-bold">
+          Votre demande a été reçue et est en attente
+        </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Référence de commande :{' '}
+          <span className="font-mono font-semibold text-oasis-blue">
+            {orderRef}
+          </span>
+        </p>
+
+        <div className="mt-6 rounded-lg bg-oasis-green-light p-4 text-left text-sm text-slate-700">
+          <p className="font-semibold">Dernière étape : le paiement</p>
+          <p className="mt-1">
+            Effectuez le paiement par Mobile Money, puis envoyez la capture
+            d'écran de votre preuve de paiement sur WhatsApp au numéro{' '}
+            <span className="font-semibold">{waNumber}</span> en précisant
+            votre référence de commande. Votre commande passera en statut
+            "Payé" dès que l'administrateur aura confirmé la réception.
+          </p>
+        </div>
+
+        <a
+          href={buildWhatsAppLink(orderRef, waNumber)}
+          target="_blank"
+          rel="noreferrer"
+          className="btn-accent mt-6 w-full"
+        >
+          Continuer sur WhatsApp
+        </a>
+
+        <Link to="/mes-commandes" className="mt-3 block text-sm text-oasis-blue">
+          Voir mes commandes
+        </Link>
+      </div>
+    </div>
+  )
+}

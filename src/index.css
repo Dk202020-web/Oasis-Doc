@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-oasis-bg text-oasis-charcoal antialiased;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-size: 17px;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+h1, h2, h3, h4, .font-sans {
+  font-family: "Times New Roman", Times, Georgia, serif;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+::selection { background: #D9EAD9; color: #102E22; }
+
+a {
+  @apply text-oasis-blue;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-bold shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-oasis-blue/15 disabled:cursor-not-allowed disabled:opacity-60;
+}
+.btn-primary {
+  @apply btn bg-oasis-blue text-white shadow-oasis-blue/20 hover:-translate-y-0.5 hover:bg-oasis-blue-dark hover:shadow-lg;
+}
+.btn-accent {
+  @apply btn bg-oasis-green text-white shadow-oasis-green/20 hover:-translate-y-0.5 hover:bg-oasis-green-dark hover:shadow-lg;
+}
+.btn-outline {
+  @apply btn border border-oasis-blue/30 bg-white text-oasis-blue hover:-translate-y-0.5 hover:border-oasis-blue hover:bg-oasis-blue hover:text-white hover:shadow-md;
+}
+.card {
+  @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60;
+}
+.input {
+  @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm transition focus:border-oasis-blue focus:outline-none focus:ring-4 focus:ring-oasis-blue/10;
+}
+.label {
+  @apply mb-1 block text-sm font-medium text-slate-700;
+}
+.badge {
+  @apply inline-block rounded-full px-2 py-0.5 text-xs font-semibold;
+}
+
+.home-eyebrow { @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-oasis-green-dark; }
+.home-eyebrow span { @apply h-2 w-2 rounded-full bg-oasis-green shadow-[0_0_0_4px_rgba(83,185,54,.12)]; }
+.home-action { @apply flex min-h-[5.1rem] items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-left text-[15px] font-bold leading-5 text-slate-800 shadow-[0_10px_20px_-18px_rgba(15,23,42,.7)] transition-all duration-300 hover:-translate-y-1 hover:border-oasis-green/40 hover:shadow-lg; }
+.home-action svg:last-child { @apply ml-auto transition-transform duration-300; }
+.home-action:hover svg:last-child { transform: translateX(0.25rem); }
+.home-action--primary { @apply border-oasis-green bg-oasis-green text-white hover:bg-oasis-green-dark; }
+.home-action__icon { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-oasis-green-light text-oasis-green-dark; }
+.home-action--primary .home-action__icon { @apply bg-white/15 text-white; }
+.hero-photo-frame { @apply relative min-h-[25rem] overflow-hidden rounded-[2.1rem] bg-gradient-to-br from-oasis-green-dark via-oasis-green to-oasis-sage shadow-[0_30px_65px_-30px_rgba(16,46,34,.7)]; }
+.hero-photo-frame::after { content: ""; @apply absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-oasis-green-dark/35 to-transparent; }
+.hero-person-photo { @apply absolute inset-0 h-full w-full object-cover object-center; }
+.hero-photo-fallback { @apply absolute inset-0 flex items-end justify-center bg-[radial-gradient(circle_at_72%_24%,rgba(255,255,255,.42)_0,rgba(255,255,255,.42)_14%,transparent_14.3%),linear-gradient(135deg,#163E2D_0%,#2E6A4B_52%,#A9C9AF_100%)]; }
+.hero-fallback-document { @apply mb-12 w-[58%] rotate-[-5deg] rounded-xl bg-white p-7 shadow-2xl; }
+.hero-fallback-document span { @apply text-[10px] font-bold tracking-[.22em] text-oasis-green-dark; }
+.hero-fallback-document strong { @apply mt-5 block text-2xl leading-tight text-slate-800; }
+.hero-fallback-document i { @apply mt-8 block h-2 w-3/4 rounded-full bg-oasis-green-light; }
+.hero-dots { @apply absolute -left-4 top-0 h-32 w-32 bg-[radial-gradient(circle,#2E6A4B_1.5px,transparent_1.8px)] [background-size:14px_14px] opacity-70; }
+.hero-orb { @apply absolute -right-8 top-20 h-40 w-40 rounded-full bg-oasis-green-light/70; }
+.hero-badges { @apply absolute -bottom-1 -right-1 z-10 hidden w-48 space-y-3 sm:block; }
+.hero-badge { @apply flex items-center gap-3 rounded-xl border border-white/80 bg-white/95 p-3 shadow-lg backdrop-blur transition-transform duration-300 hover:-translate-x-1; }
+.hero-badge span { @apply flex h-9 w-9 items-center justify-center rounded-lg bg-oasis-green-light text-oasis-green-dark; }
+.hero-badge b { @apply text-sm text-slate-800; }
+.home-benefits { @apply grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_-30px_rgba(15,23,42,.65)] sm:grid-cols-2 lg:grid-cols-4; }
+.home-benefit { @apply flex gap-3 border-b border-slate-100 p-5 transition-colors duration-300 hover:bg-oasis-green-light/40 sm:[&:nth-child(odd)]:border-r lg:border-b-0 lg:border-r lg:last:border-r-0; }
+.home-benefit__icon { @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-oasis-green-light text-oasis-green-dark; }
+.home-benefit h2 { @apply text-[15px] font-bold text-slate-900; }
+.home-benefit p { @apply mt-1 text-sm leading-5 text-slate-500; }
+.home-assurance { @apply flex flex-col justify-between gap-5 rounded-2xl bg-gradient-to-r from-oasis-green-dark via-oasis-blue to-oasis-green px-6 py-5 text-white shadow-[0_15px_30px_-22px_rgba(16,46,34,.8)] lg:flex-row lg:items-center; }
+.home-assurance strong { @apply block text-base; }
+.home-assurance p { @apply mt-1 text-sm text-white/80; }
+.home-assurance__flag { @apply relative block h-8 w-11 shrink-0 overflow-hidden rounded-md border border-white/30; background: linear-gradient(90deg, #17814b 0 33.33%, #d84a42 33.33% 66.66%, #f5d447 66.66% 100%); }
+.home-assurance__flag::after { content: "★"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; text-shadow: 0 0 2px rgba(0,0,0,.35); }
+.home-assurance__right { @apply flex flex-wrap items-center gap-3 text-xs; }
+.home-assurance__right > span { @apply uppercase tracking-wider text-white/75; }
+.home-assurance__right b { @apply rounded-md bg-white/15 px-3 py-2 text-sm; }
+
+.how-step-card { @apply relative min-h-64 rounded-xl border border-[#e6e9e4] bg-white px-6 pb-7 pt-16 text-center shadow-[0_12px_24px_-22px_rgba(16,46,34,.45)] transition-all duration-300 hover:-translate-y-1 hover:border-oasis-sage hover:shadow-xl; }
+.how-step-card h2 { @apply text-lg font-bold text-oasis-charcoal; }
+.how-step-card p { @apply mt-4 text-sm leading-7 text-slate-600; }
+.how-step-icon { @apply absolute -top-9 left-1/2 flex h-[4.5rem] w-[4.5rem] -translate-x-1/2 items-center justify-center rounded-full border-4 border-white shadow-md; }
+.how-step-icon--forest { @apply bg-oasis-green-light text-oasis-green; }
+.how-step-icon--gold { @apply bg-[#f9efd1] text-[#b07c18]; }
+.how-step-icon--sage { @apply bg-[#e5f0e6] text-oasis-green-dark; }
+.how-step-number { @apply mb-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white; }
+.how-step-number--forest { @apply bg-oasis-blue; }
+.how-step-number--gold { @apply bg-[#d5a327]; }
+.how-step-number--sage { @apply bg-oasis-green; }
+.how-connector { @apply absolute top-1/2 z-0 hidden h-px border-t-2 border-dashed border-oasis-sage md:block; width: 7.5%; }
+.how-connector::after { content: ""; @apply absolute -right-1 -top-[5px] h-2 w-2 rounded-full bg-oasis-green; }
+.how-connector--one { left: 29.5%; }
+.how-connector--two { left: 62.8%; }
+.payment-methods { @apply mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-5; }
+.payment-method { @apply flex min-h-24 flex-col items-center justify-center gap-3 rounded-xl border border-[#e2e7df] bg-oasis-cream px-3 py-4 text-center text-xs font-bold text-oasis-charcoal shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-oasis-sage hover:bg-white hover:shadow-md; }
+.payment-method img { @apply h-8 max-w-[5.5rem] object-contain; }
+.payment-method--prepaid { @apply text-oasis-green; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .card { @apply p-4; }
+  .btn { @apply w-full justify-center; }
+  .hero-photo-frame { min-height: 20rem; }
+  .hero-fallback-document { @apply mb-8 p-5; }
+}
