@@ -26,13 +26,35 @@ export default function ServicesLanding() {
   const [categories, setCategories] = useState([])
 
   useEffect(() => {
+    let isActive = true
+
     supabase
       .from('categories')
       .select('*, service_sections(*, services(*))')
       .eq('is_active', true)
       .order('sort_order')
-      .then(({ data }) => setCategories(data || []))
+      .then(({ data }) => {
+        if (isActive) setCategories(data || [])
+      })
+
+    return () => {
+      isActive = false
+    }
   }, [])
+
+  const processedCategories = useMemo(() => {
+    return categories.map((category, index) => {
+      const theme = cardThemes[index % cardThemes.length]
+      const services = category.service_sections?.flatMap((section) => section.services || []).filter((service) => service.is_active) || []
+      const description = index === 0
+        ? text(lang, 'Certification de documents existants', 'Certification of existing documents')
+        : index === 1
+          ? text(lang, 'Obtention de documents officiels', 'Official document requests')
+          : text(lang, 'Traduction certifiée de documents', 'Certified document translation')
+
+      return { category, theme, services, description }
+    })
+  }, [categories, lang])
 
   const featuredService = useMemo(() => {
     const preferred = categories.find((category) => category.slug === 'obtention')
@@ -49,10 +71,7 @@ export default function ServicesLanding() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {categories.map((category, index) => {
-          const theme = cardThemes[index % cardThemes.length]
-          const services = category.service_sections?.flatMap((section) => section.services || []).filter((service) => service.is_active) || []
-          const description = index === 0 ? text(lang, 'Certification de documents existants', 'Certification of existing documents') : index === 1 ? text(lang, 'Obtention de documents officiels', 'Official document requests') : text(lang, 'Traduction certifiée de documents', 'Certified document translation')
+        {processedCategories.map(({ category, theme, services, description }) => {
           return <article className="overflow-hidden rounded-2xl bg-white shadow-[0_12px_20px_-14px_rgba(15,23,42,.35)] ring-1 ring-slate-200/80" key={category.id}>
             <div className={`min-h-32 bg-gradient-to-br ${theme.top} px-5 py-6 text-white`}><h2 className="text-xl font-extrabold tracking-[-.025em]">{pick(category, 'name', lang)}</h2><p className="mt-1.5 text-sm text-white/90">{description}</p><p className="mt-3 text-xs font-semibold text-white/85">{services.length || '—'} {text(lang, 'services disponibles', 'services available')}</p></div>
             <div className="p-5"><p className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-500">{text(lang, 'Services populaires', 'Popular services')}</p><div className="mt-3 min-h-20 space-y-2.5">{services.slice(0, 3).map((service) => <Link className="group flex items-start justify-between gap-3 text-sm" key={service.id} to={`/service/${service.id}`}><span className="flex min-w-0 items-start gap-2 text-slate-700"><DocumentIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /><span className="line-clamp-1 group-hover:text-slate-950">{pick(service, 'name', lang)}</span></span><span className={`shrink-0 text-xs font-extrabold ${theme.accent}`}>{Number(service.price_xaf).toLocaleString('fr-FR')} FCFA</span></Link>)}{services.length === 0 && <p className="text-sm text-slate-400">{text(lang, 'Services bientôt disponibles.', 'Services coming soon.')}</p>}</div><Link to={`/services/${category.slug}`} className={`mt-5 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-extrabold text-white transition ${theme.button}`}>{text(lang, 'Voir tous les services', 'View all services')}<Arrow /></Link></div>

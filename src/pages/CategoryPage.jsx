@@ -19,22 +19,35 @@ export default function CategoryPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
+    let isActive = true
+
     async function load() {
       const { data: cat } = await supabase
         .from('categories')
         .select('*')
         .eq('slug', slug)
         .single()
+
+      if (!isActive) return
+
       setCategory(cat)
+
       if (!cat) return
+
       const { data: secs } = await supabase
         .from('service_sections')
         .select('*, services(*)')
         .eq('category_id', cat.id)
         .order('sort_order')
-      setSections(secs || [])
+
+      if (isActive) setSections(secs || [])
     }
+
     load()
+
+    return () => {
+      isActive = false
+    }
   }, [slug])
 
   const filteredSections = useMemo(() => {

@@ -2,10 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+html { scroll-behavior: smooth; }
+
 body {
   @apply bg-oasis-bg text-oasis-charcoal antialiased;
-  font-family: "Times New Roman", Times, Georgia, serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   font-size: 17px;
+  background-image: radial-gradient(circle at top, rgba(132, 180, 130, 0.08), transparent 32%);
 }
 
 img {
@@ -86,6 +89,7 @@ a {
 .home-assurance { @apply flex flex-col justify-between gap-5 rounded-2xl bg-gradient-to-r from-oasis-green-dark via-oasis-blue to-oasis-green px-6 py-5 text-white shadow-[0_15px_30px_-22px_rgba(16,46,34,.8)] lg:flex-row lg:items-center; }
 .home-assurance strong { @apply block text-base; }
 .home-assurance p { @apply mt-1 text-sm text-white/80; }
+.home-assurance > div:first-child { @apply min-w-0; }
 .home-assurance__flag { @apply relative block h-8 w-11 shrink-0 overflow-hidden rounded-md border border-white/30; background: linear-gradient(90deg, #17814b 0 33.33%, #d84a42 33.33% 66.66%, #f5d447 66.66% 100%); }
 .home-assurance__flag::after { content: "★"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; text-shadow: 0 0 2px rgba(0,0,0,.35); }
 .home-assurance__right { @apply flex flex-wrap items-center gap-3 text-xs; }
@@ -118,4 +122,10 @@ a {
   .btn { @apply w-full justify-center; }
   .hero-photo-frame { min-height: 20rem; }
   .hero-fallback-document { @apply mb-8 p-5; }
+  .home-benefits { @apply grid-cols-1; }
+  .home-benefit { @apply border-r-0 border-b border-slate-100; }
+  .home-benefit:last-child { @apply border-b-0; }
+  .home-assurance { @apply px-4 py-4; }
+  .home-assurance__right { @apply gap-2; }
+  .home-assurance__right b { @apply px-2.5 py-1.5 text-xs; }
 }

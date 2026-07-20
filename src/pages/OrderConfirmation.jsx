@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
-import { buildWhatsAppLink, DEFAULT_WHATSAPP_NUMBER } from '../lib/whatsapp'
+import { buildWhatsAppLink, DEFAULT_CONTACTS, fetchWhatsAppContacts, getPrimaryContact } from '../lib/whatsapp'
 
 function CheckIcon() {
   return <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="m8.5 12 2.3 2.3 4.8-5" /></svg>
@@ -11,22 +10,26 @@ export default function OrderConfirmation() {
   const location = useLocation()
   const navigate = useNavigate()
   const orderRef = location.state?.orderRef
-  const [waNumber, setWaNumber] = useState(DEFAULT_WHATSAPP_NUMBER)
+  const [contacts, setContacts] = useState(DEFAULT_CONTACTS)
 
   useEffect(() => {
     if (!orderRef) {
       navigate('/', { replace: true })
       return
     }
-    supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'whatsapp_number')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) setWaNumber(data.value)
-      })
-  }, [orderRef])
+
+    let mounted = true
+
+    fetchWhatsAppContacts().then((data) => {
+      if (mounted) setContacts(data)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [orderRef, navigate])
+
+  const primaryContact = getPrimaryContact(contacts)
 
   if (!orderRef) return null
 
@@ -49,14 +52,14 @@ export default function OrderConfirmation() {
           <p className="mt-1">
             Effectuez le paiement par Mobile Money, puis envoyez la capture
             d'écran de votre preuve de paiement sur WhatsApp au numéro{' '}
-            <span className="font-semibold">{waNumber}</span> en précisant
+            <span className="font-semibold">{primaryContact.number}</span> en précisant
             votre référence de commande. Votre commande passera en statut
             "Payé" dès que l'administrateur aura confirmé la réception.
           </p>
         </div>
 
         <a
-          href={buildWhatsAppLink(orderRef, waNumber)}
+          href={buildWhatsAppLink(orderRef, primaryContact.number)}
           target="_blank"
           rel="noreferrer"
           className="btn-accent mt-6 w-full"

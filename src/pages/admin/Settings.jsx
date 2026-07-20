@@ -1,25 +1,100 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { DEFAULT_WHATSAPP_NUMBER } from '../../lib/whatsapp'
+import { DEFAULT_CONTACTS, DEFAULT_WHATSAPP_NUMBER, normalizeContacts } from '../../lib/whatsapp'
 
 export default function Settings() {
-  const [waNumber, setWaNumber] = useState('')
+  const [contactText, setContactText] = useState('')
   const [saved, setSaved] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'whatsapp_number')
-      .maybeSingle()
-      .then(({ data }) => setWaNumber(data?.value || DEFAULT_WHATSAPP_NUMBER))
+    async function loadContacts() {
+      if (!supabase) return
+
+      const { data, error } = await supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', ['whatsapp_contacts', 'whatsapp_number'])
+
+      if (error) return
+
+      const rows = Array.isArray(data) ? data : []
+      const contactsRow = rows.find((row) => row.key === 'whatsapp_contacts')
+      const primaryRow = rows.find((row) => row.key === 'whatsapp_number')
+
+      if (contactsRow?.value) {
+        setContactText(
+          normalizeContacts(contactsRow.value)
+            .map((item) => `${item.label}|${item.number}`)
+            .join('\n')
+        )
+      } else if (primaryRow?.value) {
+        setContactText(`Support WhatsApp|${primaryRow.value}`)
+      } else {
+        setContactText(
+          DEFAULT_CONTACTS.map((item) => `${item.label}|${item.number}`).join('\n')
+        )
+      }
+    }
+
+    loadContacts()
   }, [])
+
+  function validateContacts(text) {
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    const errors = []
+    const contacts = []
+
+    lines.forEach((line, index) => {
+      const [label, number] = line.split('|').map((part) => part.trim())
+      if (!number) {
+        errors.push(`Ligne ${index + 1} : ajoutez un numéro WhatsApp après le séparateur |.`)
+        return
+      }
+
+      const cleanedNumber = number.replace(/[^\d+]/g, '')
+      if (!cleanedNumber || cleanedNumber.length < 8) {
+        errors.push(`Ligne ${index + 1} : numéro WhatsApp invalide.`)
+        return
+      }
+
+      contacts.push({
+        label: label || 'WhatsApp',
+        number: cleanedNumber
+      })
+    })
+
+    return { contacts, errors }
+  }
 
   async function handleSave(e) {
     e.preventDefault()
+    if (!supabase) return
+
+    const { contacts, errors } = validateContacts(contactText)
+
+    if (errors.length > 0) {
+      setErrorMessage(errors.join(' '))
+      setSaved(false)
+      return
+    }
+
+    const primaryNumber = contacts[0]?.number || DEFAULT_WHATSAPP_NUMBER
+
+    setErrorMessage('')
+
     await supabase
       .from('settings')
-      .upsert({ key: 'whatsapp_number', value: waNumber })
+      .upsert({ key: 'whatsapp_contacts', value: JSON.stringify(contacts) })
+
+    await supabase
+      .from('settings')
+      .upsert({ key: 'whatsapp_number', value: primaryNumber })
+
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -27,22 +102,22 @@ export default function Settings() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Réglages</h1>
-      <form onSubmit={handleSave} className="card max-w-md space-y-4">
+      <form onSubmit={handleSave} className="card max-w-xl space-y-4">
         <div>
           <label className="label">
-            Numéro WhatsApp pour les preuves de paiement
+            Contacts WhatsApp à afficher (un contact par ligne)
           </label>
-          <input
-            className="input"
-            value={waNumber}
-            onChange={(e) => setWaNumber(e.target.value)}
-            placeholder="+237690409736"
+          <textarea
+            className="input min-h-[140px]"
+            value={contactText}
+            onChange={(e) => setContactText(e.target.value)}
+            placeholder="Support|+237690409736"
           />
           <p className="mt-1 text-xs text-slate-500">
-            Affiché sur l'écran de confirmation de commande et la page
-            Contact.
+            Format attendu : Libellé | numéro. Exemple : Support|+237690409736
           </p>
         </div>
+        {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
         {saved && <p className="text-sm text-oasis-green">Enregistré ✓</p>}
         <button className="btn-primary">Enregistrer</button>
       </form>

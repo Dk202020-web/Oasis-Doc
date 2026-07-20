@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLang, text } from '../context/LangContext'
-import { DEFAULT_WHATSAPP_NUMBER, buildWhatsAppLink } from '../lib/whatsapp'
-import { supabase } from '../supabaseClient'
+import { DEFAULT_CONTACTS, buildWhatsAppLink, fetchWhatsAppContacts, getPrimaryContact } from '../lib/whatsapp'
 import BrandLogo from './BrandLogo'
 
 export default function Footer() {
   const { lang } = useLang()
-  const [waNumber, setWaNumber] = useState(DEFAULT_WHATSAPP_NUMBER)
+  const [contacts, setContacts] = useState(DEFAULT_CONTACTS)
 
   useEffect(() => {
-    supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'whatsapp_number')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) setWaNumber(data.value)
-      })
+    let mounted = true
+
+    fetchWhatsAppContacts().then((data) => {
+      if (mounted) setContacts(data)
+    })
+
+    return () => {
+      mounted = false
+    }
   }, [])
+
+  const primaryContact = getPrimaryContact(contacts)
 
   return (
     <footer className="mt-16 bg-gradient-to-r from-oasis-green-dark via-oasis-green to-oasis-green text-white">
@@ -57,14 +59,19 @@ export default function Footer() {
               <li>{text(lang, 'Réponse rapide', 'Fast response')}</li>
               <li>{text(lang, 'Support en ligne', 'Online support')}</li>
             </ul>
-            <a
-              href={buildWhatsAppLink('N/A', waNumber)}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-oasis-green-dark transition hover:bg-oasis-cream"
-            >
-              {text(lang, 'Contactez-nous', 'Contact us')}
-            </a>
+            <div className="mt-4 flex flex-col gap-2">
+              {contacts.map((contact) => (
+                <a
+                  key={`${contact.label}-${contact.number}`}
+                  href={buildWhatsAppLink('N/A', contact.number)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-oasis-green-dark transition hover:bg-oasis-cream"
+                >
+                  {contact.label || text(lang, 'Contactez-nous', 'Contact us')}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>

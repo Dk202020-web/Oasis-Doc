@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
 import { useLang, text } from '../context/LangContext'
-import { DEFAULT_WHATSAPP_NUMBER, buildWhatsAppLink } from '../lib/whatsapp'
+import { DEFAULT_CONTACTS, buildWhatsAppLink, fetchWhatsAppContacts, getPrimaryContact } from '../lib/whatsapp'
 
 export default function Contact() {
   const { lang } = useLang()
-  const [waNumber, setWaNumber] = useState(DEFAULT_WHATSAPP_NUMBER)
+  const [contacts, setContacts] = useState(DEFAULT_CONTACTS)
 
   useEffect(() => {
-    supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'whatsapp_number')
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) setWaNumber(data.value)
-      })
+    let mounted = true
+
+    fetchWhatsAppContacts().then((data) => {
+      if (mounted) setContacts(data)
+    })
+
+    return () => {
+      mounted = false
+    }
   }, [])
+
+  const primaryContact = getPrimaryContact(contacts)
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10">
@@ -34,14 +36,19 @@ export default function Contact() {
           <p className="mt-3 text-sm text-slate-600">
             {text(lang, 'Envoyez-nous votre preuve de paiement ou laissez un message directement.', 'Send your payment proof or leave a message directly.')}
           </p>
-          <a
-            href={buildWhatsAppLink('N/A', waNumber)}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-accent mt-4 w-full"
-          >
-            {waNumber}
-          </a>
+          <div className="mt-4 space-y-3">
+            {contacts.map((contact) => (
+              <a
+                key={`${contact.label}-${contact.number}`}
+                href={buildWhatsAppLink('N/A', contact.number)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-accent w-full"
+              >
+                {contact.label}: {contact.number}
+              </a>
+            ))}
+          </div>
         </div>
 
         <div className="card">
