@@ -3,6 +3,11 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useLang, pick } from '../../context/LangContext'
 import StatusBadges from '../../components/StatusBadges'
+import {
+  REQUEST_STATUS_OPTIONS,
+  getRequestStatus,
+  getRequestStatusLabelForLang
+} from '../../lib/requestStatus'
 
 export default function RequestDetail() {
   const { id } = useParams()
@@ -12,6 +17,7 @@ export default function RequestDetail() {
   const [files, setFiles] = useState([])
   const [deliverable, setDeliverable] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [statusDraft, setStatusDraft] = useState('pending')
 
   async function load() {
     const { data: it } = await supabase
@@ -20,6 +26,7 @@ export default function RequestDetail() {
       .eq('id', id)
       .single()
     setItem(it)
+    setStatusDraft(getRequestStatus(it))
 
     if (it) {
       const { data: reqs } = await supabase
@@ -41,16 +48,37 @@ export default function RequestDetail() {
     load()
   }, [id])
 
-  async function togglePaid() {
-    await supabase
-      .from('order_items')
-      .update({ payment_status: item.payment_status === 'paid' ? 'pending' : 'paid' })
-      .eq('id', id)
-    load()
-  }
+  async function updateStatus() {
+    const { error } = await supabase.from('order_items').update({ status: statusDraft }).eq('id', id)
+    if (!error) {
+      load()
+      return
+    }
 
-  async function setInProgress() {
-    await supabase.from('order_items').update({ work_status: 'in_progress' }).eq('id', id)
+    const fallback = (() => {
+      switch (statusDraft) {
+        case 'paid':
+          return { payment_status: 'paid', work_status: 'pending' }
+        case 'in_progress':
+          return { payment_status: 'paid', work_status: 'in_progress' }
+        case 'validated':
+        case 'completed':
+        case 'available':
+          return { payment_status: 'paid', work_status: 'done' }
+        case 'rejected':
+          return { payment_status: 'pending', work_status: 'pending' }
+        case 'pending':
+        default:
+          return { payment_status: 'pending', work_status: 'pending' }
+      }
+    })()
+
+    const { error: fallbackError } = await supabase.from('order_items').update(fallback).eq('id', id)
+    if (fallbackError) {
+      console.error(fallbackError)
+      alert("Impossible d'enregistrer le statut.")
+      return
+    }
     load()
   }
 
@@ -71,6 +99,7 @@ export default function RequestDetail() {
         .from('order-deliverables')
         .upload(path, file)
       if (upErr) throw upErr
+
       await supabase.from('order_item_files').insert({
         order_item_id: id,
         storage_path: path,
@@ -78,22 +107,24 @@ export default function RequestDetail() {
         uploaded_by: 'admin',
         kind: 'deliverable'
       })
-      await supabase.from('order_items').update({ work_status: 'done' }).eq('id', id)
+      await supabase.from('order_items').update({ status: 'available' }).eq('id', id)
       load()
     } catch (err) {
       console.error(err)
-      alert("Échec de l'envoi du fichier.")
+      alert("Echec de l'envoi du fichier.")
     } finally {
       setUploading(false)
     }
   }
 
-  if (!item) return <div>Chargement…</div>
+  if (!item) return <div>Chargement...</div>
 
   function fieldLabel(reqId) {
     const req = requirements.find((r) => r.id === reqId)
     return req ? pick(req, 'label', lang) : reqId
   }
+
+  const currentStatus = getRequestStatus(item)
 
   return (
     <div>
@@ -101,21 +132,46 @@ export default function RequestDetail() {
         {pick(item.service, 'name', lang)}
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        Commande {item.order?.order_ref} — {item.order?.user?.full_name} (
+        Commande {item.order?.order_ref} - {item.order?.user?.full_name} (
         {item.order?.user?.email})
-        {item.order?.user?.phone && ` — ${item.order.user.phone}`}
+        {item.order?.user?.phone && ` - ${item.order.user.phone}`}
       </p>
 
-      <div className="mb-6 flex items-center gap-3">
-        <StatusBadges item={item} />
-        <button onClick={togglePaid} className="btn-outline !py-1 text-sm">
-          {item.payment_status === 'paid' ? 'Marquer non-payé' : 'Marquer payé'}
-        </button>
-        {item.work_status === 'pending' && (
-          <button onClick={setInProgress} className="btn-outline !py-1 text-sm">
-            Démarrer le traitement
+      <div className="mb-6">
+        <StatusBadges item={item} variant="full" />
+      </div>
+
+      <div className="card mb-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="font-semibold">Changer le statut</h2>
+          <span className="text-xs text-slate-500">
+            {getRequestStatusLabelForLang(currentStatus, lang)}
+          </span>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="label">Statut actuel / Current status</label>
+            <select
+              className="input"
+              value={statusDraft}
+              onChange={(e) => setStatusDraft(e.target.value)}
+            >
+              {REQUEST_STATUS_OPTIONS.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {lang === 'en' ? status.labelEn : status.labelFr}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button onClick={updateStatus} className="btn-primary sm:w-auto">
+            Enregistrer le statut
           </button>
-        )}
+        </div>
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          {lang === 'en'
+            ? 'The request follows one status column: pending, paid, in progress, then a final state such as validated, available, completed, or rejected.'
+            : 'La progression suit une seule colonne de statut: en attente, payé, en cours, puis un statut final comme validé, disponible, terminé ou rejeté.'}
+        </p>
       </div>
 
       <div className="card mb-6">
@@ -128,7 +184,7 @@ export default function RequestDetail() {
             </div>
           ))}
           {Object.keys(item.submitted_values || {}).length === 0 && (
-            <p className="text-slate-400">Aucune donnée texte soumise.</p>
+            <p className="text-slate-400">Aucune donnee texte soumise.</p>
           )}
         </div>
       </div>
@@ -138,12 +194,12 @@ export default function RequestDetail() {
         <div className="space-y-2 text-sm">
           {files.map((f) => (
             <div key={f.id} className="flex items-center justify-between">
-              <span>{fieldLabel(f.requirement_id)} — {f.file_name}</span>
+              <span>{fieldLabel(f.requirement_id)} - {f.file_name}</span>
               <button
                 onClick={() => downloadSourceFile(f.storage_path)}
                 className="text-oasis-blue"
               >
-                Télécharger
+                Telecharger
               </button>
             </div>
           ))}
@@ -157,12 +213,13 @@ export default function RequestDetail() {
         <h2 className="mb-3 font-semibold">Livraison du document final</h2>
         {deliverable ? (
           <p className="text-sm text-oasis-green">
-            Déjà livré : {deliverable.file_name}
+            Deja livre : {deliverable.file_name}
           </p>
         ) : (
           <div>
             <label className="label">
-              Téléverser le document final (marque automatiquement "Terminé")
+              Televerser le document final (marque automatiquement
+              "Disponible")
             </label>
             <input type="file" onChange={handleMarkDone} disabled={uploading} />
           </div>

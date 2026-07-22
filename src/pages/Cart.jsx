@@ -50,10 +50,11 @@ export default function Cart() {
       for (const item of items) {
         const { data: orderItem, error: itemErr } = await supabase
           .from('order_items')
-          .insert({
+            .insert({
             order_id: order.id,
             service_id: item.service.id,
             price_at_order: item.service.price_xaf,
+            status: 'pending',
             submitted_values: sanitizeValuesForJson(item.values)
           })
           .select()

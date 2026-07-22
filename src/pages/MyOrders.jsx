@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useLang, pick } from '../context/LangContext'
 import StatusBadges from '../components/StatusBadges'
+import { getRequestStatus, isRequestDeliverableReady } from '../lib/requestStatus'
 
 export default function MyOrders() {
   const { user } = useAuth()
@@ -51,6 +52,7 @@ export default function MyOrders() {
                 const deliverable = (item.order_item_files || []).find(
                   (f) => f.kind === 'deliverable'
                 )
+                const status = getRequestStatus(item)
                 return (
                   <div
                     key={item.id}
@@ -59,7 +61,7 @@ export default function MyOrders() {
                     <span>{pick(item.service, 'name', lang)}</span>
                     <div className="flex items-center gap-3">
                       <StatusBadges item={item} />
-                      {item.work_status === 'done' && deliverable && (
+                      {isRequestDeliverableReady(status) && deliverable && (
                         <button
                           onClick={() =>
                             downloadDeliverable(deliverable.storage_path)

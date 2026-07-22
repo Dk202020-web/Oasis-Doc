@@ -35,26 +35,26 @@ export default function Footer() {
 
           <div>
             <div className="mb-3 text-base font-extrabold uppercase tracking-wider text-white">{text(lang, 'Découvrir', 'Explore')}</div>
-            <ul className="space-y-2 text-sm text-white/90">
-              <li><Link className="transition hover:text-white" to="/services">{text(lang, 'Services', 'Services')}</Link></li>
-              <li><Link className="transition hover:text-white" to="/comment-ca-marche">{text(lang, 'Comment ça marche', 'How it works')}</Link></li>
-              <li><Link className="transition hover:text-white" to="/suivi">{text(lang, 'Suivi de commande', 'Track order')}</Link></li>
+            <ul className="space-y-2 text-sm text-white">
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/services">{text(lang, 'Services', 'Services')}</Link></li>
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/comment-ca-marche">{text(lang, 'Comment ça marche', 'How it works')}</Link></li>
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/suivi">{text(lang, 'Suivi de commande', 'Track order')}</Link></li>
             </ul>
           </div>
 
           <div>
             <div className="mb-3 text-base font-extrabold uppercase tracking-wider text-white">{text(lang, 'Informations', 'Information')}</div>
-            <ul className="space-y-2 text-sm text-white/90">
-              <li><Link className="transition hover:text-white" to="/faq">FAQ</Link></li>
-              <li><Link className="transition hover:text-white" to="/confidentialite">{text(lang, 'Confidentialité', 'Privacy')}</Link></li>
-              <li><Link className="transition hover:text-white" to="/conditions">{text(lang, 'Conditions générales', 'Terms')}</Link></li>
-              <li><Link className="transition hover:text-white" to="/contact">{text(lang, 'Nous contacter', 'Contact us')}</Link></li>
+            <ul className="space-y-2 text-sm text-white">
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/faq">FAQ</Link></li>
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/confidentialite">{text(lang, 'Confidentialité', 'Privacy')}</Link></li>
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/conditions">{text(lang, 'Conditions générales', 'Terms')}</Link></li>
+              <li><Link className="!text-white transition hover:!text-white hover:underline" to="/contact">{text(lang, 'Nous contacter', 'Contact us')}</Link></li>
             </ul>
           </div>
 
           <div>
             <div className="mb-3 text-base font-extrabold uppercase tracking-wider text-white">{text(lang, 'Contact', 'Contact')}</div>
-            <ul className="space-y-2 text-sm text-white/90">
+            <ul className="space-y-2 text-sm text-white">
               <li>{text(lang, 'Service client', 'Customer service')}</li>
               <li>{text(lang, 'Réponse rapide', 'Fast response')}</li>
               <li>{text(lang, 'Support en ligne', 'Online support')}</li>

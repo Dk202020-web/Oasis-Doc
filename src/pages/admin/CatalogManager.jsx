@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { REQUIREMENT_TYPES } from '../../components/RequirementField'
+import { getDefaultCategoryImage } from '../../lib/categoryImage'
 
-const ICONS = ['📄', '🎓', '⚖️', '🌐', '🏛️', '📜', '✈️', '🏥']
+const ICONS = ['📄', '🎓', '⚖️', '🌐', '🏛️', '📝', '✈️', '🏥']
+
+function emptyRequirementDraft() {
+  return {
+    label_fr: '',
+    label_en: '',
+    type: 'short_text',
+    help_text: '',
+    is_required: true,
+    max_size_mb: 5
+  }
+}
 
 export default function CatalogManager() {
   const [categories, setCategories] = useState([])
@@ -12,11 +24,20 @@ export default function CatalogManager() {
   const [services, setServices] = useState([])
   const [selectedServiceId, setSelectedServiceId] = useState(null)
   const [requirements, setRequirements] = useState([])
+  const [requirementDraft, setRequirementDraft] = useState(emptyRequirementDraft)
+  const [categoryDraft, setCategoryDraft] = useState({
+    name_fr: '',
+    name_en: '',
+    image_file: null
+  })
+  const [categoryPreview, setCategoryPreview] = useState('')
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
 
   async function loadCategories() {
     const { data } = await supabase.from('categories').select('*').order('sort_order')
     setCategories(data || [])
   }
+
   async function loadSections(categoryId) {
     if (!categoryId) return setSections([])
     const { data } = await supabase
@@ -26,6 +47,7 @@ export default function CatalogManager() {
       .order('sort_order')
     setSections(data || [])
   }
+
   async function loadServices(sectionId) {
     if (!sectionId) return setServices([])
     const { data } = await supabase
@@ -35,6 +57,7 @@ export default function CatalogManager() {
       .order('id')
     setServices(data || [])
   }
+
   async function loadRequirements(serviceId) {
     if (!serviceId) return setRequirements([])
     const { data } = await supabase
@@ -59,26 +82,82 @@ export default function CatalogManager() {
     setRequirements([])
   }, [selectedSectionId])
   useEffect(() => { loadRequirements(selectedServiceId) }, [selectedServiceId])
+  useEffect(() => {
+    setRequirementDraft(emptyRequirementDraft())
+  }, [selectedServiceId])
+  useEffect(() => {
+    if (!categoryDraft.image_file) {
+      setCategoryPreview('')
+      return undefined
+    }
+    const preview = URL.createObjectURL(categoryDraft.image_file)
+    setCategoryPreview(preview)
+    return () => URL.revokeObjectURL(preview)
+  }, [categoryDraft.image_file])
+
+  useEffect(() => {
+    if (!showCategoryForm) {
+      setCategoryDraft({ name_fr: '', name_en: '', image_file: null })
+    }
+  }, [showCategoryForm])
 
   // --- Category ---
-  async function addCategory() {
-    const name = prompt('Nom de la catégorie (FR) ?')
-    if (!name) return
-    const nameEn = prompt('Nom (EN) ?', name) || name
-    const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')
-    await supabase.from('categories').insert({
-      name_fr: name, name_en: nameEn, slug,
+  function updateCategoryDraft(field, value) {
+    setCategoryDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  async function addCategory(e) {
+    e.preventDefault()
+    const name = categoryDraft.name_fr.trim()
+    const nameEn = categoryDraft.name_en.trim()
+    if (!name || !nameEn) return
+
+    const slug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+
+    let image_path = null
+    if (categoryDraft.image_file) {
+      const ext = categoryDraft.image_file.name.split('.').pop() || 'png'
+      const safeName = `${slug}-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('category-images')
+        .upload(safeName, categoryDraft.image_file, { upsert: true })
+      if (uploadError) {
+        alert('Impossible de televerser limage de categorie.')
+        return
+      }
+      image_path = safeName
+    }
+
+    const { error } = await supabase.from('categories').insert({
+      name_fr: name,
+      name_en: nameEn,
+      slug,
       icon: ICONS[categories.length % ICONS.length],
+      image_path,
       sort_order: categories.length
     })
+
+    if (error) {
+      alert("Impossible de creer la categorie.")
+      return
+    }
+
+    setCategoryDraft({ name_fr: '', name_en: '', image_file: null })
+    setShowCategoryForm(false)
     loadCategories()
   }
+
   async function toggleCategoryActive(cat) {
     await supabase.from('categories').update({ is_active: !cat.is_active }).eq('id', cat.id)
     loadCategories()
   }
+
   async function deleteCategory(cat) {
-    if (!confirm(`Supprimer la catégorie "${cat.name_fr}" ?`)) return
+    if (!confirm(`Supprimer la categorie "${cat.name_fr}" ?`)) return
     await supabase.from('categories').delete().eq('id', cat.id)
     if (selectedCategoryId === cat.id) {
       setSelectedCategoryId(null)
@@ -93,11 +172,14 @@ export default function CatalogManager() {
     if (!name) return
     const nameEn = prompt('Nom (EN) ?', name) || name
     await supabase.from('service_sections').insert({
-      category_id: selectedCategoryId, name_fr: name, name_en: nameEn,
+      category_id: selectedCategoryId,
+      name_fr: name,
+      name_en: nameEn,
       sort_order: sections.length
     })
     loadSections(selectedCategoryId)
   }
+
   async function deleteSection(section) {
     if (!confirm(`Supprimer la section "${section.name_fr}" ?`)) return
     await supabase.from('service_sections').delete().eq('id', section.id)
@@ -115,15 +197,21 @@ export default function CatalogManager() {
     const nameEn = prompt('Nom (EN) ?', name) || name
     const price = Number(prompt('Prix (XAF) ?', '0')) || 0
     await supabase.from('services').insert({
-      section_id: selectedSectionId, name_fr: name, name_en: nameEn,
-      description_fr: '', description_en: '', price_xaf: price
+      section_id: selectedSectionId,
+      name_fr: name,
+      name_en: nameEn,
+      description_fr: '',
+      description_en: '',
+      price_xaf: price
     })
     loadServices(selectedSectionId)
   }
+
   async function toggleServiceActive(sv) {
     await supabase.from('services').update({ is_active: !sv.is_active }).eq('id', sv.id)
     loadServices(selectedSectionId)
   }
+
   async function deleteService(sv) {
     if (!confirm(`Supprimer le service "${sv.name_fr}" ?`)) return
     await supabase.from('services').delete().eq('id', sv.id)
@@ -133,39 +221,52 @@ export default function CatalogManager() {
     }
     loadServices(selectedSectionId)
   }
+
   async function updateServicePrice(sv, price) {
     await supabase.from('services').update({ price_xaf: Number(price) }).eq('id', sv.id)
     loadServices(selectedSectionId)
   }
 
-  // --- Requirement ---
-  async function addRequirement() {
+  function updateRequirementDraft(field, value) {
+    setRequirementDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  async function addRequirement(e) {
+    e.preventDefault()
     if (!selectedServiceId) return
-    const label = prompt('Libellé du champ (FR) ?')
-    if (!label) return
-    const labelEn = prompt('Libellé (EN) ?', label) || label
-    const type = prompt(
-      `Type de champ ? (${REQUIREMENT_TYPES.map((t) => t.value).join(' | ')})`,
-      'short_text'
-    )
-    const isRequired = confirm('Ce champ est-il obligatoire ?')
+    if (!requirementDraft.label_fr.trim() || !requirementDraft.label_en.trim()) return
+
+    const selectedType =
+      REQUIREMENT_TYPES.find((t) => t.value === requirementDraft.type)?.value || 'short_text'
+    const isFileType = selectedType.startsWith('file_')
+
     await supabase.from('service_requirements').insert({
       service_id: selectedServiceId,
-      label_fr: label,
-      label_en: labelEn,
-      type: REQUIREMENT_TYPES.some((t) => t.value === type) ? type : 'short_text',
-      is_required: isRequired,
-      accepted_formats: type?.startsWith('file') ? ['pdf', 'jpg', 'png'] : null,
-      max_size_mb: type?.startsWith('file') ? 5 : null,
+      label_fr: requirementDraft.label_fr.trim(),
+      label_en: requirementDraft.label_en.trim(),
+      type: selectedType,
+      help_text: requirementDraft.help_text.trim() || null,
+      is_required: Boolean(requirementDraft.is_required),
+      accepted_formats: isFileType
+        ? selectedType === 'file_pdf'
+          ? ['pdf']
+          : ['pdf', 'jpg', 'jpeg', 'png', 'webp']
+        : null,
+      max_size_mb: isFileType ? Number(requirementDraft.max_size_mb) || 5 : null,
       sort_order: requirements.length
     })
     loadRequirements(selectedServiceId)
+    setRequirementDraft(emptyRequirementDraft())
   }
+
   async function deleteRequirement(reqId) {
     if (!confirm('Supprimer ce champ ?')) return
     await supabase.from('service_requirements').delete().eq('id', reqId)
     loadRequirements(selectedServiceId)
   }
+
+  const selectedService = services.find((s) => s.id === selectedServiceId)
+  const fileType = REQUIREMENT_TYPES.find((t) => t.value === requirementDraft.type)
 
   return (
     <div>
@@ -175,9 +276,72 @@ export default function CatalogManager() {
         {/* Categories */}
         <div className="card">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold">Catégories</h2>
-            <button onClick={addCategory} className="text-sm text-oasis-blue">+ Ajouter</button>
+            <h2 className="font-semibold">Categories</h2>
+            <button
+              type="button"
+              onClick={() => setShowCategoryForm((open) => !open)}
+              className="text-sm text-oasis-blue"
+            >
+              {showCategoryForm ? 'Masquer' : '+ Ajouter'}
+            </button>
           </div>
+          {showCategoryForm && (
+            <form onSubmit={addCategory} className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="grid gap-3">
+                <div>
+                  <label className="label">Nom FR</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={categoryDraft.name_fr}
+                    onChange={(e) => updateCategoryDraft('name_fr', e.target.value)}
+                    placeholder="Legalisation"
+                  />
+                </div>
+                <div>
+                  <label className="label">Nom EN</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={categoryDraft.name_en}
+                    onChange={(e) => updateCategoryDraft('name_en', e.target.value)}
+                    placeholder="Legalisation"
+                  />
+                </div>
+                <div>
+                  <label className="label">Illustration</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="input"
+                    onChange={(e) => updateCategoryDraft('image_file', e.target.files?.[0] || null)}
+                  />
+                </div>
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Apercu
+                  </div>
+                  <div className="flex h-24 items-center justify-center overflow-hidden rounded-xl bg-slate-50">
+                    {categoryPreview ? (
+                      <img src={categoryPreview} alt="Apercu de la categorie" className="h-full w-full object-contain p-2" />
+                    ) : (
+                      <span className="text-xs text-slate-400">
+                        {getDefaultCategoryImage(categories.length)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-slate-500">
+                    {categoryPreview ? 'Image choisie' : `Placeholder: ${getDefaultCategoryImage(categories.length)}`}
+                  </span>
+                  <button type="submit" className="btn-primary w-auto">
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
           <div className="space-y-1">
             {categories.map((cat) => (
               <div
@@ -204,6 +368,9 @@ export default function CatalogManager() {
                 </div>
               </div>
             ))}
+            {categories.length === 0 && (
+              <p className="text-xs text-slate-400">Aucune categorie.</p>
+            )}
           </div>
         </div>
 
@@ -276,11 +443,13 @@ export default function CatalogManager() {
       {/* Requirements builder for selected service */}
       {selectedServiceId && (
         <div className="card mt-4">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="font-semibold">
-              Champs requis — {services.find((s) => s.id === selectedServiceId)?.name_fr}
+              Champs requis - {selectedService?.name_fr}
             </h2>
-            <button onClick={addRequirement} className="text-sm text-oasis-blue">+ Ajouter un champ</button>
+            <span className="text-xs text-slate-500">
+              Formulaire de creation du champ
+            </span>
           </div>
 
           <div className="mb-4 flex items-center gap-2 text-sm">
@@ -288,15 +457,120 @@ export default function CatalogManager() {
             <input
               type="number"
               className="input w-32"
-              defaultValue={services.find((s) => s.id === selectedServiceId)?.price_xaf}
-              onBlur={(e) => updateServicePrice(services.find((s) => s.id === selectedServiceId), e.target.value)}
+              defaultValue={selectedService?.price_xaf}
+              onBlur={(e) => updateServicePrice(selectedService, e.target.value)}
             />
           </div>
+
+          <form onSubmit={addRequirement} className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-800">Nouveau champ</h3>
+                <p className="text-xs text-slate-500">
+                  Renseignez les champs FR et EN, puis choisissez le type.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-oasis-blue ring-1 ring-oasis-blue/20">
+                {fileType?.label || 'Texte court'}
+              </span>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="label">Libelle FR</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={requirementDraft.label_fr}
+                  onChange={(e) => updateRequirementDraft('label_fr', e.target.value)}
+                  placeholder="Numero du document"
+                />
+              </div>
+              <div>
+                <label className="label">Libelle EN</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={requirementDraft.label_en}
+                  onChange={(e) => updateRequirementDraft('label_en', e.target.value)}
+                  placeholder="Document number"
+                />
+              </div>
+              <div>
+                <label className="label">Type de champ</label>
+                <select
+                  className="input"
+                  value={requirementDraft.type}
+                  onChange={(e) => updateRequirementDraft('type', e.target.value)}
+                >
+                  {REQUIREMENT_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Champ obligatoire</label>
+                <select
+                  className="input"
+                  value={requirementDraft.is_required ? 'yes' : 'no'}
+                  onChange={(e) => updateRequirementDraft('is_required', e.target.value === 'yes')}
+                >
+                  <option value="yes">Oui</option>
+                  <option value="no">Non</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="label">Aide / Help text</label>
+                <textarea
+                  className="input min-h-24"
+                  rows={3}
+                  value={requirementDraft.help_text}
+                  onChange={(e) => updateRequirementDraft('help_text', e.target.value)}
+                  placeholder="Expliquez quoi saisir ou televerser"
+                />
+              </div>
+              {requirementDraft.type.startsWith('file_') && (
+                <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                  <div>
+                    <label className="label">Formats acceptes</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={
+                        requirementDraft.type === 'file_pdf'
+                          ? 'pdf'
+                          : 'pdf, jpg, jpeg, png, webp'
+                      }
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Taille max (MB)</label>
+                    <input
+                      type="number"
+                      className="input"
+                      min="1"
+                      value={requirementDraft.max_size_mb}
+                      onChange={(e) => updateRequirementDraft('max_size_mb', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button type="submit" className="btn-primary w-full sm:w-auto">
+                Creer le champ
+              </button>
+            </div>
+          </form>
 
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="py-1">Libellé</th>
+                <th className="py-1">Libelle</th>
                 <th className="py-1">Type</th>
                 <th className="py-1">Obligatoire</th>
                 <th className="py-1"></th>
@@ -320,7 +594,7 @@ export default function CatalogManager() {
               {requirements.length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-3 text-center text-slate-400">
-                    Aucun champ défini.
+                    Aucun champ defini.
                   </td>
                 </tr>
               )}

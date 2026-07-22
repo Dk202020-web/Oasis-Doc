@@ -38,23 +38,22 @@ export default function OrderConfirmation() {
       <div className="card">
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-oasis-green-light text-oasis-green-dark"><CheckIcon /></div>
         <h1 className="text-xl font-bold">
-          Votre demande a été reçue et est en attente
+          Votre demande a ete recu et est en attente / Your request has been received and is pending
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          Référence de commande :{' '}
+          Reference de commande / Order reference :{' '}
           <span className="font-mono font-semibold text-oasis-blue">
             {orderRef}
           </span>
         </p>
 
         <div className="mt-6 rounded-lg bg-oasis-green-light p-4 text-left text-sm text-slate-700">
-          <p className="font-semibold">Dernière étape : le paiement</p>
+          <p className="font-semibold">Prochaines etapes / Next steps</p>
           <p className="mt-1">
-            Effectuez le paiement par Mobile Money, puis envoyez la capture
-            d'écran de votre preuve de paiement sur WhatsApp au numéro{' '}
-            <span className="font-semibold">{primaryContact.number}</span> en précisant
-            votre référence de commande. Votre commande passera en statut
-            "Payé" dès que l'administrateur aura confirmé la réception.
+            Effectuez le paiement par Mobile Money, puis envoyez la preuve sur
+            WhatsApp au numero <span className="font-semibold">{primaryContact.number}</span>.
+            Votre demande suivra ensuite la sequence: en attente, paye, en cours,
+            puis un statut final comme disponible, valide, termine ou rejete.
           </p>
         </div>
 
@@ -74,3 +73,4 @@ export default function OrderConfirmation() {
     </div>
   )
 }
+
