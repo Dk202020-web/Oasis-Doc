@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Signup() {
-  const { signUp } = useAuth()
+  const { signUp, signOut, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -12,13 +12,22 @@ export default function Signup() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/', { replace: true })
+    }
+  }, [authLoading, navigate, user])
+
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
       await signUp({ email, password, fullName, phone })
-      navigate('/')
+      await signOut().catch(() => {})
+      navigate('/connexion', {
+        replace: true
+      })
     } catch (err) {
       setError(err.message)
     } finally {

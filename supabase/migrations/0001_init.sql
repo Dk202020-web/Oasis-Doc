@@ -25,14 +25,15 @@ declare
   invited boolean;
 begin
   select exists (
-    select 1 from public.admin_invites where email = new.email
+    select 1 from public.admin_invites
+    where lower(btrim(email)) = lower(btrim(new.email))
   ) into invited;
 
   insert into public.users (id, full_name, email, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    new.email,
+    lower(btrim(new.email)),
     case when invited then 'admin' else 'user' end
   )
   on conflict (id) do nothing;
@@ -54,11 +55,29 @@ create table if not exists public.admin_invites (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists admin_invites_email_canonical_idx
+  on public.admin_invites (lower(btrim(email)));
+
+create or replace function public.normalize_admin_invite_email()
+returns trigger as $$
+begin
+  new.email := lower(btrim(new.email));
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_admin_invite_normalize on public.admin_invites;
+create trigger on_admin_invite_normalize
+  before insert or update on public.admin_invites
+  for each row execute function public.normalize_admin_invite_email();
+
 -- If the invited email already has an account, promote them immediately.
 create or replace function public.handle_new_admin_invite()
 returns trigger as $$
 begin
-  update public.users set role = 'admin' where email = new.email;
+  update public.users
+    set role = 'admin'
+    where lower(btrim(email)) = lower(btrim(new.email));
   return new;
 end;
 $$ language plpgsql security definer;
@@ -151,6 +170,54 @@ insert into public.settings (key, value)
   values ('whatsapp_number', '+237690409736')
   on conflict (key) do nothing;
 
+create or replace function public.lookup_order_tracking(p_order_ref text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  result jsonb;
+begin
+  select jsonb_build_object(
+    'order', jsonb_build_object(
+      'id', o.id,
+      'order_ref', o.order_ref,
+      'created_at', o.created_at
+    ),
+    'items', coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            'id', oi.id,
+            'order_id', oi.order_id,
+            'service_id', oi.service_id,
+            'price_at_order', oi.price_at_order,
+            'payment_status', oi.payment_status,
+            'work_status', oi.work_status,
+            'submitted_values', oi.submitted_values,
+            'created_at', oi.created_at,
+            'service', to_jsonb(s.*)
+          )
+          order by oi.created_at
+        )
+        from public.order_items oi
+        join public.services s on s.id = oi.service_id
+        where oi.order_id = o.id
+      ),
+      '[]'::jsonb
+    )
+  )
+  into result
+  from public.orders o
+  where upper(btrim(o.order_ref)) = upper(btrim(p_order_ref))
+  limit 1;
+
+  return result;
+end;
+$$;
+
 -- ============================================================
 -- Row Level Security
 -- ============================================================
@@ -221,23 +288,20 @@ create policy "requirements admin delete" on public.service_requirements
   for delete using (public.is_admin());
 
 -- orders: a customer sees only their own; admin sees all; anyone can
--- look an order up by exact order_ref for guest tracking (Suivi page)
+-- look an order up by exact order_ref through lookup_order_tracking()
 create policy "orders owner or admin read" on public.orders
-  for select using (auth.uid() = user_id or public.is_admin() or true);
+  for select using (auth.uid() = user_id or public.is_admin());
 create policy "orders owner insert" on public.orders
   for insert with check (auth.uid() = user_id);
 create policy "orders admin update" on public.orders
   for update using (public.is_admin());
 
 -- order_items: readable if you own the parent order, or you're admin,
--- or (for guest Suivi lookups) the parent order was matched by ref —
--- handled at the orders level above, so a simple join-based read here
--- is safe since orders.select already allows lookup by ref.
+-- guest lookups use lookup_order_tracking() instead of direct table reads.
 create policy "order_items read" on public.order_items
   for select using (
     public.is_admin()
     or exists (select 1 from public.orders o where o.id = order_id and o.user_id = auth.uid())
-    or true
   );
 create policy "order_items owner insert" on public.order_items
   for insert with check (

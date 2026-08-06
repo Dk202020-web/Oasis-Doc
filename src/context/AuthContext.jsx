@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
 const AuthContext = createContext(null)
@@ -7,33 +7,82 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null) // row from public.users
   const [loading, setLoading] = useState(true)
+  const authSeq = useRef(0)
+  const profileSeq = useRef(0)
 
   async function loadProfile(userId) {
+    const seq = ++profileSeq.current
+
     if (!userId) {
-      setProfile(null)
-      return
+      if (seq === profileSeq.current) setProfile(null)
+      return null
     }
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
+
+    if (seq !== profileSeq.current) return null
+
+    if (error) {
+      console.error('Failed to load profile:', error)
+      setProfile(null)
+      return null
+    }
+
     setProfile(data || null)
+    return data || null
+  }
+
+  async function syncSession(nextSession) {
+    const seq = ++authSeq.current
+    setLoading(true)
+    setSession(nextSession)
+    setProfile(null)
+
+    try {
+      if (nextSession?.user?.id) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', nextSession.user.id)
+          .maybeSingle()
+
+        if (seq !== authSeq.current) return
+
+        if (error) {
+          console.error('Failed to load profile:', error)
+          setProfile(null)
+          return
+        }
+
+        setProfile(data || null)
+      }
+    } finally {
+      if (seq === authSeq.current) setLoading(false)
+    }
   }
 
   useEffect(() => {
+    let active = true
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      loadProfile(session?.user?.id).finally(() => setLoading(false))
+      if (!active) return
+      syncSession(session)
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setSession(session)
-        loadProfile(session?.user?.id)
+        syncSession(session)
       }
     )
-    return () => listener.subscription.unsubscribe()
+
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   async function signUp({ email, password, fullName, phone }) {

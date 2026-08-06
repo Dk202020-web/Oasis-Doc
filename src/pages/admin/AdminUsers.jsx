@@ -76,7 +76,7 @@ export default function AdminUsers() {
         <h2 className="mb-3 font-semibold">Invitations en attente</h2>
         <ul className="space-y-1 text-sm">
           {invites
-            .filter((i) => !admins.some((a) => a.email === i.email))
+            .filter((i) => !admins.some((a) => a.email?.trim().toLowerCase() === i.email?.trim().toLowerCase()))
             .map((i) => (
               <li key={i.id} className="flex items-center justify-between">
                 {i.email}

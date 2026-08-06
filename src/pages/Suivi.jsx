@@ -25,23 +25,21 @@ export default function Suivi() {
     setOrder(null)
     setItems([])
 
-    const { data: ord } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('order_ref', normalized)
-      .maybeSingle()
+    const { data, error: rpcError } = await supabase.rpc('lookup_order_tracking', {
+      p_order_ref: normalized
+    })
 
-    if (!ord) {
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    if (!data?.order) {
       setError(text(lang, 'Aucune commande trouvée avec cette référence.', 'No order was found with this reference.'))
       return
     }
-    setOrder(ord)
-
-    const { data: its } = await supabase
-      .from('order_items')
-      .select('*, service:services(*)')
-      .eq('order_id', ord.id)
-    setItems(its || [])
+    setOrder(data.order)
+    setItems(data.items || [])
   }
 
   return (
