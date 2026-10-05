@@ -68,6 +68,18 @@ export default function CategoryPage() {
       .filter((s) => s.services.length > 0)
   }, [sections, search, lang])
 
+  function serviceDestination(section, service) {
+    if (category.slug !== 'equivalence-diplome') return `/service/${service.id}`
+    const purposeBySection = {
+      'General evaluation': 'general',
+      'Study in Canada': 'study',
+      'Immigration to Canada': 'immigration',
+      'Work in Canada': 'work',
+      'Regulated professions': 'licensing'
+    }
+    return `/equivalence-diplome?purpose=${purposeBySection[section.name_en] || 'general'}`
+  }
+
   if (!category) {
     return <div className="mx-auto max-w-6xl px-4 py-8">Chargement…</div>
   }
@@ -89,6 +101,11 @@ export default function CategoryPage() {
             <p className="mt-2 text-sm text-white/85">
               {pick(category, 'description', lang) || text(lang, 'Explorez tous les services de cette categorie.', 'Explore every service in this category.')}
             </p>
+            {category.slug === 'equivalence-diplome' && (
+              <Link to="/equivalence-diplome" className="mt-4 inline-flex rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-oasis-green-dark transition hover:bg-oasis-green-light">
+                {text(lang, 'Soumettre une demande d’équivalence', 'Submit an equivalence request')}
+              </Link>
+            )}
           </div>
           <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20 sm:h-24 sm:w-24">
             <img src={categoryImage} alt={pick(category, 'name', lang)} className="h-full w-full object-contain p-2" />
@@ -112,24 +129,28 @@ export default function CategoryPage() {
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {(section.services || [])
                 .filter((sv) => sv.is_active)
-                .map((service) => (
-                  <Link
-                    key={service.id}
-                    to={`/service/${service.id}`}
-                    className="card flex items-center justify-between gap-3 hover:shadow-md"
-                  >
-                    <div>
-                      <div className="font-semibold text-slate-800">
-                        {pick(service, 'name', lang)}
+                .map((service) => {
+                  const isEquivalence = category.slug === 'equivalence-diplome'
+                  return (
+                    <Link
+                      key={service.id}
+                      to={serviceDestination(section, service)}
+                      className="card flex items-center justify-between gap-3 hover:shadow-md"
+                    >
+                      <div>
+                        <div className="font-semibold text-slate-800">
+                          {pick(service, 'name', lang)}
+                        </div>
+                        <div className="text-sm text-oasis-blue">
+                          {isEquivalence
+                            ? text(lang, 'Tarif selon le parcours', 'Pricing based on your pathway')
+                            : <>{Number(service.price_xaf).toLocaleString('fr-FR')}{' '}FCFA</>}
+                        </div>
                       </div>
-                      <div className="text-sm text-oasis-blue">
-                        {Number(service.price_xaf).toLocaleString('fr-FR')}{' '}
-                        FCFA
-                      </div>
-                    </div>
-                    <span className="text-slate-400"><ArrowIcon /></span>
-                  </Link>
-                ))}
+                      <span className="text-slate-400"><ArrowIcon /></span>
+                    </Link>
+                  )
+                })}
             </div>
           </div>
         ))}

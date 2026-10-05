@@ -12,6 +12,7 @@ import OrderConfirmation from './pages/OrderConfirmation'
 import Suivi from './pages/Suivi'
 import MyOrders from './pages/MyOrders'
 import MyAccount from './pages/MyAccount'
+import MyDiplomaQuotes from './pages/MyDiplomaQuotes'
 import HowItWorks from './pages/HowItWorks'
 import FAQ from './pages/FAQ'
 import Privacy from './pages/Privacy'
@@ -19,6 +20,7 @@ import Terms from './pages/Terms'
 import Contact from './pages/Contact'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import DiplomaEquivalence from './pages/DiplomaEquivalence'
 
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
@@ -27,6 +29,7 @@ import RequestDetail from './pages/admin/RequestDetail'
 import CatalogManager from './pages/admin/CatalogManager'
 import Settings from './pages/admin/Settings'
 import AdminUsers from './pages/admin/AdminUsers'
+import PricingRules from './pages/admin/PricingRules'
 
 export default function App() {
   return (
@@ -36,6 +39,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/services" element={<ServicesLanding />} />
+          <Route path="/equivalence-diplome" element={<DiplomaEquivalence />} />
           <Route path="/services/:slug" element={<CategoryPage />} />
           <Route path="/service/:id" element={<ServiceDetail />} />
           <Route path="/panier" element={<Cart />} />
@@ -65,6 +69,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/mes-equivalences"
+            element={
+              <ProtectedRoute>
+                <MyDiplomaQuotes />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/admin"
@@ -80,6 +92,7 @@ export default function App() {
             <Route path="catalog" element={<CatalogManager />} />
             <Route path="admins" element={<AdminUsers />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="equivalences" element={<PricingRules />} />
           </Route>
         </Routes>
       </main>

@@ -33,6 +33,8 @@ services are pre-seeded so you can test end-to-end immediately.
    example categories/sections/services (Légalisation, Obtention,
    Traduction) with a mix of text, date, image, PDF and multi-file
    requirement fields, so you have real data to click through.
+4. To enable the diploma-equivalence workflow and its complete localized
+   country list, run migrations `0002` through `0006` in filename order.
 
 ## 3. Create your admin account
 

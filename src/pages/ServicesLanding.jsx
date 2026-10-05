@@ -78,8 +78,9 @@ export default function ServicesLanding() {
       const theme = cardThemes[index % cardThemes.length]
       const services =
         category.service_sections?.flatMap((section) => section.services || []).filter((service) => service.is_active) || []
-      const description =
-        index === 0
+      const description = category.slug === 'equivalence-diplome'
+        ? text(lang, 'Analyse et orientation des diplômes pour le Canada', 'Credential analysis and guidance for Canada')
+        : index === 0
           ? text(lang, 'Certification de documents existants', 'Certification of existing documents')
           : index === 1
             ? text(lang, 'Obtention de documents officiels', 'Official document requests')
@@ -147,7 +148,7 @@ export default function ServicesLanding() {
                 </p>
                 <div className="mt-3 min-h-20 space-y-2.5">
                   {services.slice(0, 3).map((service) => (
-                    <Link className="group flex items-start justify-between gap-3 text-sm" key={service.id} to={`/service/${service.id}`}>
+                    <Link className="group flex items-start justify-between gap-3 text-sm" key={service.id} to={category.slug === 'equivalence-diplome' ? '/equivalence-diplome' : `/service/${service.id}`}>
                       <span className="flex min-w-0 items-start gap-2 text-slate-700">
                         <DocumentIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                         <span className="line-clamp-1 group-hover:text-slate-950">
@@ -155,7 +156,9 @@ export default function ServicesLanding() {
                         </span>
                       </span>
                       <span className={`shrink-0 text-xs font-extrabold ${theme.accent}`}>
-                        {Number(service.price_xaf).toLocaleString('fr-FR')} FCFA
+                        {category.slug === 'equivalence-diplome'
+                          ? text(lang, 'Selon le parcours', 'Pathway-based pricing')
+                          : `${Number(service.price_xaf).toLocaleString('fr-FR')} FCFA`}
                       </span>
                     </Link>
                   ))}

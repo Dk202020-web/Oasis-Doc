@@ -32,11 +32,14 @@ function CartIcon() {
 }
 
 export default function Navbar() {
-  const { user, isAdmin, signOut } = useAuth()
+  const { user, profile, isAdmin, signOut } = useAuth()
   const { items } = useCart()
   const { lang, toggleLang } = useLang()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const en = lang === 'en'
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email || ''
+  const initial = (displayName.trim()[0] || user?.email?.[0] || '?').toUpperCase()
 
   function closeMobileMenu() {
     setMobileOpen(false)
@@ -48,7 +51,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between gap-3">
           <BrandLogo />
 
-          <div className="hidden items-center gap-1 xl:flex">
+          <div className="hidden items-center gap-1 lg:flex">
             <NavLink to="/" className={navLink} end>
               {text(lang, 'Accueil', 'Home')}
             </NavLink>
@@ -90,7 +93,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setMobileOpen((open) => !open)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-700 xl:hidden"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-700 lg:hidden"
               aria-label={
                 mobileOpen
                   ? text(lang, 'Fermer le menu', 'Close menu')
@@ -107,24 +110,39 @@ export default function Navbar() {
             </button>
 
             {user ? (
-              <div className="hidden items-center gap-2 sm:flex">
-                <Link
-                  to="/mes-commandes"
-                  className="text-sm font-semibold text-slate-600 hover:text-oasis-blue"
-                >
-                  {text(lang, 'Mes commandes', 'My orders')}
-                </Link>
-                {isAdmin && (
-                  <Link to="/admin" className="btn-outline !px-3 !py-1.5 text-sm">
-                    Admin
-                  </Link>
-                )}
+              <div className="relative">
                 <button
-                  onClick={signOut}
-                  className="text-sm font-medium text-slate-500 hover:text-oasis-blue"
+                  type="button"
+                  onClick={() => setProfileOpen((open) => !open)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-oasis-blue text-sm font-bold text-white shadow-sm ring-2 ring-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-oasis-blue focus:ring-offset-2"
+                  aria-label={text(lang, 'Ouvrir le profil', 'Open profile')}
+                  aria-expanded={profileOpen}
+                  aria-controls="profile-menu"
                 >
-                  {text(lang, 'Déconnexion', 'Sign out')}
+                  {initial}
                 </button>
+                {profileOpen && (
+                  <div id="profile-menu" className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+                    <div className="border-b border-slate-100 px-2 pb-3">
+                      <p className="truncate text-sm font-bold text-slate-900">{displayName}</p>
+                      <p className="mt-1 truncate text-xs text-slate-500">{profile?.email || user.email}</p>
+                      {profile?.phone && <p className="mt-1 text-xs text-slate-500">{profile.phone}</p>}
+                      {profile?.role === 'admin' && <span className="mt-2 inline-block rounded-full bg-oasis-blue-light px-2 py-0.5 text-xs font-semibold text-oasis-blue">Admin</span>}
+                    </div>
+                    <div className="flex flex-col pt-2">
+                      <Link onClick={() => setProfileOpen(false)} to="/mes-commandes" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-oasis-blue">
+                        {text(lang, 'Mes commandes', 'My orders')}
+                      </Link>
+                      <Link onClick={() => setProfileOpen(false)} to="/mes-equivalences" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-oasis-blue">
+                        {text(lang, 'Mes devis diplôme', 'My diploma quotes')}
+                      </Link>
+                      {isAdmin && <Link onClick={() => setProfileOpen(false)} to="/admin" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-oasis-blue">Admin</Link>}
+                      <button onClick={() => { setProfileOpen(false); signOut() }} className="rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-oasis-blue">
+                        {text(lang, 'Déconnexion', 'Sign out')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Link
@@ -138,7 +156,7 @@ export default function Navbar() {
         </div>
 
         {mobileOpen && (
-          <div id="mobile-navigation" className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg xl:hidden">
+          <div id="mobile-navigation" className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg lg:hidden">
             <nav className="flex flex-col gap-1">
               <NavLink onClick={closeMobileMenu} to="/" className={navLink} end>
                 {text(lang, 'Accueil', 'Home')}
@@ -175,6 +193,13 @@ export default function Navbar() {
                     className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-oasis-blue"
                   >
                     {text(lang, 'Mes commandes', 'My orders')}
+                  </Link>
+                  <Link
+                    onClick={closeMobileMenu}
+                    to="/mes-equivalences"
+                    className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-oasis-blue"
+                  >
+                    {text(lang, 'Mes devis diplôme', 'My diploma quotes')}
                   </Link>
                   {isAdmin && (
                     <Link onClick={closeMobileMenu} to="/admin" className="btn-outline mt-2 w-full">
