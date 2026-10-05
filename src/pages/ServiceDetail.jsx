@@ -26,23 +26,39 @@ export default function ServiceDetail() {
   const [requirements, setRequirements] = useState([])
   const [values, setValues] = useState({})
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
+    let active = true
     async function load() {
-      const { data: sv } = await supabase
+      setLoading(true)
+      setLoadError(false)
+      const { data: sv, error: serviceError } = await supabase
         .from('services')
         .select('*')
         .eq('id', id)
         .single()
+      if (!active) return
+      if (serviceError || !sv) {
+        setService(null)
+        setLoadError(true)
+        setLoading(false)
+        return
+      }
       setService(sv)
-      const { data: reqs } = await supabase
+      const { data: reqs, error: requirementsError } = await supabase
         .from('service_requirements')
         .select('*')
         .eq('service_id', id)
         .order('sort_order')
+      if (!active) return
       setRequirements(reqs || [])
+      setLoadError(Boolean(requirementsError))
+      setLoading(false)
     }
     load()
+    return () => { active = false }
   }, [id])
 
   function setValue(reqId, val) {
@@ -75,6 +91,7 @@ export default function ServiceDetail() {
   }
 
   function handleAddAndContinue() {
+    if (!service) return
     if (!requireAuth()) return
     if (!validate()) return
     addItem(service, values)
@@ -82,14 +99,18 @@ export default function ServiceDetail() {
   }
 
   function handleAddAndCheckout() {
+    if (!service) return
     if (!requireAuth()) return
     if (!validate()) return
     addItem(service, values)
     navigate('/panier')
   }
 
-  if (!service) {
+  if (loading) {
     return <div className="mx-auto max-w-3xl px-4 py-8">Chargement…</div>
+  }
+  if (!service || loadError) {
+    return <div className="mx-auto max-w-3xl px-4 py-8"><div role="alert" className="card text-center text-slate-600">{text(lang, 'Ce service est indisponible pour le moment. Réessayez plus tard.', 'This service is currently unavailable. Please try again later.')}<Link to="/services" className="mt-4 inline-flex">{text(lang, 'Voir les services', 'Browse services')}</Link></div></div>
   }
 
   return (

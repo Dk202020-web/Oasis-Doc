@@ -48,7 +48,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between gap-3">
           <BrandLogo />
 
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1 xl:flex">
             <NavLink to="/" className={navLink} end>
               {text(lang, 'Accueil', 'Home')}
             </NavLink>
@@ -90,13 +90,14 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setMobileOpen((open) => !open)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 md:hidden"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-700 xl:hidden"
               aria-label={
                 mobileOpen
                   ? text(lang, 'Fermer le menu', 'Close menu')
                   : text(lang, 'Ouvrir le menu', 'Open menu')
               }
               aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
             >
               <span className="flex flex-col gap-1">
                 <span className="h-0.5 w-4 rounded-full bg-current" />
@@ -137,7 +138,7 @@ export default function Navbar() {
         </div>
 
         {mobileOpen && (
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg md:hidden">
+          <div id="mobile-navigation" className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg xl:hidden">
             <nav className="flex flex-col gap-1">
               <NavLink onClick={closeMobileMenu} to="/" className={navLink} end>
                 {text(lang, 'Accueil', 'Home')}

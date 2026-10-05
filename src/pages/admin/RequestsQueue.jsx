@@ -51,7 +51,7 @@ export default function RequestsQueue() {
       </div>
 
       <div className="card overflow-x-auto p-0">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[680px] text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-2">{lang === 'en' ? 'Client' : 'Client'}</th>

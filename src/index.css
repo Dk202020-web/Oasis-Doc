@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 html { scroll-behavior: smooth; }
+html, body, #root { min-height: 100%; }
+body { min-width: 320px; }
+#root { min-height: 100vh; }
 
 body {
   @apply bg-oasis-bg text-oasis-charcoal antialiased;
@@ -57,6 +60,25 @@ a {
 }
 .badge {
   @apply inline-block rounded-full px-2 py-0.5 text-xs font-semibold;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(31, 74, 55, .55);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .card:hover { transform: none; box-shadow: inherit; }
+  .btn-primary:hover, .btn-accent:hover, .btn-outline:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }
 
 .home-eyebrow { @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-oasis-green-dark; }

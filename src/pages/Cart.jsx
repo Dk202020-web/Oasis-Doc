@@ -31,6 +31,7 @@ export default function Cart() {
   const [error, setError] = useState('')
 
   async function handleSubmitOrder() {
+    if (submitting) return
     if (!user) {
       navigate('/connexion', { state: { from: '/panier' } })
       return
@@ -103,8 +104,8 @@ export default function Cart() {
       ) : (
         <div className="space-y-4">
           {items.map((item) => (
-            <div key={item.cartId} className="card flex items-center justify-between">
-              <div>
+            <div key={item.cartId} className="card flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 break-words">
                 <div className="font-semibold">
                   {pick(item.service, 'name', lang)}
                 </div>
@@ -121,7 +122,7 @@ export default function Cart() {
             </div>
           ))}
 
-          <div className="card flex items-center justify-between bg-oasis-green-light">
+          <div className="card flex items-center justify-between gap-3 bg-oasis-green-light">
             <span className="font-semibold">Total</span>
             <span className="text-xl font-bold text-oasis-blue">
               {total.toLocaleString('fr-FR')} FCFA

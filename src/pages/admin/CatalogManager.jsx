@@ -272,7 +272,7 @@ export default function CatalogManager() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">Gestion du catalogue</h1>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {/* Categories */}
         <div className="card">
           <div className="mb-3 flex items-center justify-between">

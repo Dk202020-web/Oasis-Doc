@@ -9,16 +9,26 @@ export default function MyOrders() {
   const { user } = useAuth()
   const { lang } = useLang()
   const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
-    if (!user) return
+    if (!user) { setLoading(false); return }
+    let active = true
+    setLoading(true)
     supabase
       .from('orders')
       .select('*, order_items(*, service:services(*), order_item_files(*))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setOrders(data || []))
-  }, [user])
+      .then(({ data, error }) => {
+        if (!active) return
+        setOrders(data || [])
+        setLoadError(error ? (lang === 'en' ? 'Could not load your orders. Please try again.' : 'Impossible de charger vos commandes. Réessayez.') : '')
+        setLoading(false)
+      })
+    return () => { active = false }
+  }, [user, lang])
 
   async function downloadDeliverable(path) {
     const { data, error } = await supabase.storage
@@ -32,15 +42,17 @@ export default function MyOrders() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Mes commandes</h1>
 
-      {orders.length === 0 && (
+      {loading && <p className="text-slate-500">{lang === 'en' ? 'Loading orders…' : 'Chargement des commandes…'}</p>}
+      {loadError && <p role="alert" className="mb-4 text-sm text-red-600">{loadError}</p>}
+      {!loading && !loadError && orders.length === 0 && (
         <p className="text-slate-500">Vous n'avez pas encore de commande.</p>
       )}
 
       <div className="space-y-6">
         {orders.map((order) => (
           <div key={order.id} className="card">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono font-semibold">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <span className="break-all font-mono font-semibold">
                 {order.order_ref}
               </span>
               <span className="text-xs text-slate-500">
@@ -56,10 +68,10 @@ export default function MyOrders() {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between border-t border-slate-100 pt-3"
+                    className="flex flex-col items-start justify-between gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:items-center"
                   >
                     <span>{pick(item.service, 'name', lang)}</span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <StatusBadges item={item} />
                       {isRequestDeliverableReady(status) && deliverable && (
                         <button
