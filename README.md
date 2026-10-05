@@ -107,6 +107,18 @@ Open the URL it prints (usually http://localhost:5173).
   on the "Comment ça marche" page (step 2), and on the Contact page.
 - Change it anytime from **Admin → Réglages** — no redeploy needed.
 
+## Email notifications
+
+- Configure the notification recipient in **Admin → Réglages**.
+- Deploy the `submit-order` Supabase Edge Function and set the Supabase
+  function secrets `RESEND_API_KEY` and `EMAIL_FROM` (a verified sender
+  address in Resend). The Supabase project provides `SUPABASE_URL`,
+  `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions.
+- New orders email the admin; when an admin uploads a deliverable, the
+  customer receives a private download link that expires after seven days.
+- WhatsApp remains a click-to-open hand-off. Automatic WhatsApp delivery
+  requires a WhatsApp Business API provider and approved business setup.
+
 ## Requirement field types (admin catalog manager)
 
 When adding a field to a service (**Admin → Catalogue** → select a
@@ -157,7 +169,5 @@ supabase/
   approximated from the logo; swap them in one place anytime.
 - FAQ / Privacy / Terms page copy is placeholder text — replace in
   `src/pages/FAQ.jsx`, `Privacy.jsx`, `Terms.jsx`.
-- No email notifications in v1 (confirmed pull-based only) — Suivi /
-  Mes commandes is how customers check status.
 - No in-app payment gateway in v1 (confirmed) — WhatsApp hand-off as
   specced.

@@ -78,6 +78,11 @@ export default function Cart() {
         }
       }
 
+      const { error: notifyError } = await supabase.functions.invoke('submit-order', {
+        body: { event: 'new_order', orderId: order.id }
+      })
+      if (notifyError) console.error('Order saved, but admin email notification failed:', notifyError)
+
       clearCart()
       navigate('/confirmation', { state: { orderRef } })
     } catch (e) {

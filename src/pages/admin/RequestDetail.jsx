@@ -108,6 +108,10 @@ export default function RequestDetail() {
         kind: 'deliverable'
       })
       await supabase.from('order_items').update({ status: 'available' }).eq('id', id)
+      const { error: notifyError } = await supabase.functions.invoke('submit-order', {
+        body: { event: 'deliverable_ready', orderItemId: id }
+      })
+      if (notifyError) console.error('Document uploaded, but customer email notification failed:', notifyError)
       load()
     } catch (err) {
       console.error(err)

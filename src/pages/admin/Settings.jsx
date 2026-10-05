@@ -4,6 +4,7 @@ import { DEFAULT_CONTACTS, DEFAULT_WHATSAPP_NUMBER, normalizeContacts } from '..
 
 export default function Settings() {
   const [contactText, setContactText] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
   const [saved, setSaved] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -14,13 +15,15 @@ export default function Settings() {
       const { data, error } = await supabase
         .from('settings')
         .select('key, value')
-        .in('key', ['whatsapp_contacts', 'whatsapp_number'])
+        .in('key', ['whatsapp_contacts', 'whatsapp_number', 'admin_email'])
 
       if (error) return
 
       const rows = Array.isArray(data) ? data : []
       const contactsRow = rows.find((row) => row.key === 'whatsapp_contacts')
       const primaryRow = rows.find((row) => row.key === 'whatsapp_number')
+      const emailRow = rows.find((row) => row.key === 'admin_email')
+      setAdminEmail(emailRow?.value || '')
 
       if (contactsRow?.value) {
         setContactText(
@@ -95,6 +98,10 @@ export default function Settings() {
       .from('settings')
       .upsert({ key: 'whatsapp_number', value: primaryNumber })
 
+    await supabase
+      .from('settings')
+      .upsert({ key: 'admin_email', value: adminEmail.trim() })
+
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -103,6 +110,11 @@ export default function Settings() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">Réglages</h1>
       <form onSubmit={handleSave} className="card max-w-xl space-y-4">
+        <div>
+          <label className="label">Email de notification administrateur</label>
+          <input className="input" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="admin@exemple.com" />
+          <p className="mt-1 text-xs text-slate-500">Reçoit les nouvelles demandes et les notifications d'envoi des documents.</p>
+        </div>
         <div>
           <label className="label">
             Contacts WhatsApp à afficher (un contact par ligne)
